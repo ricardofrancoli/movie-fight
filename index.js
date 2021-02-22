@@ -1,109 +1,119 @@
-const autoCompleteConfig = { // all common properties so we don't have to duplicate the whole code
-    renderOption(movie) { // change what each individual option looks like -> sake of clarity, separation of concerns!
-        const imgSrc = movie.Poster === 'N/A' ? '' : movie.Poster; // if a result has N/A as image poster don't show anything
-        return `
+const autoCompleteConfig = {
+	// all common properties so we don't have to duplicate the whole code
+	renderOption(movie) {
+		// change what each individual option looks like -> sake of clarity, separation of concerns!
+		const imgSrc = movie.Poster === 'N/A' ? '' : movie.Poster; // if a result has N/A as image poster don't show anything
+		return `
         <img src="${imgSrc}" />
         ${movie.Title} (${movie.Year})
     `;
-    },
-    inputValue(movie) {
-        return movie.Title;
-    },
-    async fetchData(searchTerm) {
-        const response = await axios.get('http://www.omdbapi.com/', {
-            params: {
-                apikey: '76602806',
-                s: searchTerm
-            }
-        });
-    
-        if(response.data.Error) { // so when there's a typo it won't give an error
-            return [];
-        }
-    
-        return response.data.Search;
-    }
+	},
+	inputValue(movie) {
+		return movie.Title;
+	},
+	async fetchData(searchTerm) {
+		const response = await axios.get('https://www.omdbapi.com/', {
+			params: {
+				apikey: '76602806',
+				s: searchTerm,
+			},
+		});
+
+		if (response.data.Error) {
+			// so when there's a typo it won't give an error
+			return [];
+		}
+
+		return response.data.Search;
+	},
 };
 
 createAutoComplete({
-    ...autoCompleteConfig,
-    root: document.querySelector('#left-autocomplete'), // where to render autocomplete to
-    onOptionSelect(movie) { // when you click on one
-        document.querySelector('.tutorial').classList.add('is-hidden');
-        onMovieSelect(movie, document.querySelector('#left-summary'), 'left');
-    }
+	...autoCompleteConfig,
+	root: document.querySelector('#left-autocomplete'), // where to render autocomplete to
+	onOptionSelect(movie) {
+		// when you click on one
+		document.querySelector('.tutorial').classList.add('is-hidden');
+		onMovieSelect(movie, document.querySelector('#left-summary'), 'left');
+	},
 });
 createAutoComplete({
-    ...autoCompleteConfig,
-    root: document.querySelector('#right-autocomplete'),
-    onOptionSelect(movie) { // when you click on one
-        document.querySelector('.tutorial').classList.add('is-hidden');
-        onMovieSelect(movie, document.querySelector('#right-summary', 'right'));
-    }
+	...autoCompleteConfig,
+	root: document.querySelector('#right-autocomplete'),
+	onOptionSelect(movie) {
+		// when you click on one
+		document.querySelector('.tutorial').classList.add('is-hidden');
+		onMovieSelect(movie, document.querySelector('#right-summary', 'right'));
+	},
 });
 
 let leftMovie;
 let rightMovie;
 const onMovieSelect = async (movie, summaryElement, side) => {
-    const response = await axios.get('http://www.omdbapi.com/', {
-        params: {
-            apikey: '76602806',
-            i: movie.imdbID
-        }
-    });
+	const response = await axios.get('https://www.omdbapi.com/', {
+		params: {
+			apikey: '76602806',
+			i: movie.imdbID,
+		},
+	});
 
-    summaryElement.innerHTML = movieTemplate(response.data);
+	summaryElement.innerHTML = movieTemplate(response.data);
 
-    if (side === 'left') {
-        leftMovie = response.data;
-    } else {
-        rightMovie = response.data;
-    }
+	if (side === 'left') {
+		leftMovie = response.data;
+	} else {
+		rightMovie = response.data;
+	}
 
-    if (leftMovie && rightMovie) {
-        runComparison();
-    }
+	if (leftMovie && rightMovie) {
+		runComparison();
+	}
 };
 
 const runComparison = () => {
-    const leftSideStats = document.querySelectorAll('#left-summary .notification');
-    const rightSideStats = document.querySelectorAll('#right-summary .notification');
+	const leftSideStats = document.querySelectorAll(
+		'#left-summary .notification'
+	);
+	const rightSideStats = document.querySelectorAll(
+		'#right-summary .notification'
+	);
 
-    leftSideStats.forEach((leftStat, index) => {
-        const rightStat = rightSideStats[index];
-        
-        const leftSideValue = parseInt(leftStat.dataset.value);
-        const rightSideValue = parseInt(rightStat.dataset.value);
+	leftSideStats.forEach((leftStat, index) => {
+		const rightStat = rightSideStats[index];
 
-        if (rightSideValue > leftSideValue) {
-            leftStat.classList.remove('is-primary');
-            leftStat.classList.add('is-warning');
-        } else {
-            rightStat.classList.remove('is-primary');
-            rightStat.classList.add('is-warning');
-        }
-    });
-}
+		const leftSideValue = parseInt(leftStat.dataset.value);
+		const rightSideValue = parseInt(rightStat.dataset.value);
 
-const movieTemplate = movieDetail => {
-    const dollars = parseInt(movieDetail.BoxOffice.replace(/\$/g, '').replace(/,/g, ''));
-    const metascore = parseInt(movieDetail.Metascore);
-    const imdbRating = parseFloat(movieDetail.imdbRating);
-    const imdbVotes = parseInt(movieDetail.imdbVotes.replace(/,/g, ''));
+		if (rightSideValue > leftSideValue) {
+			leftStat.classList.remove('is-primary');
+			leftStat.classList.add('is-warning');
+		} else {
+			rightStat.classList.remove('is-primary');
+			rightStat.classList.add('is-warning');
+		}
+	});
+};
 
-    const awards = movieDetail.Awards.split(' ').reduce((prev, word) => {
-        const value = parseInt(word);
+const movieTemplate = (movieDetail) => {
+	const dollars = parseInt(
+		movieDetail.BoxOffice.replace(/\$/g, '').replace(/,/g, '')
+	);
+	const metascore = parseInt(movieDetail.Metascore);
+	const imdbRating = parseFloat(movieDetail.imdbRating);
+	const imdbVotes = parseInt(movieDetail.imdbVotes.replace(/,/g, ''));
 
-        if (isNaN(value)) {
-            return prev;
-        } else {
-            return prev + value;
-        }
-    }, 0);
-    // console.log(dollars, metascore, imdbRating, imdbVotes, awards);
+	const awards = movieDetail.Awards.split(' ').reduce((prev, word) => {
+		const value = parseInt(word);
 
+		if (isNaN(value)) {
+			return prev;
+		} else {
+			return prev + value;
+		}
+	}, 0);
+	// console.log(dollars, metascore, imdbRating, imdbVotes, awards);
 
-    return `
+	return `
     <article class="media">
         <figure class="media-left">
         <p class="image">
@@ -140,4 +150,4 @@ const movieTemplate = movieDetail => {
         <p class="subtitle">IMDb Votes</p>
     </article>
     `;
-}
+};
